@@ -1,0 +1,29 @@
+Source: chgcentre
+Section: science
+Priority: optional
+Maintainer: Debian Astro Team <debian-astro-maintainers@lists.alioth.debian.org>
+Uploaders: Gijs Molenaar <gijs@pythonic.nl>
+Build-Depends: casacore-dev,
+               cmake,
+               debhelper (>= 9),
+               libboost-dev,
+               libboost-filesystem-dev,
+               libboost-system-dev,
+               libboost-thread-dev,
+               libcfitsio3-dev,
+               libfftw3-dev,
+               libgsl0-dev,
+               libblas-dev,
+               liblapack-dev
+Standards-Version: 3.9.8
+Homepage: https://sourceforge.net/p/wsclean/wiki/chgcentre/
+
+Package: chgcentre
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: used to change the phase centre of a measurement set.
+ The 'chgcentre' tool can be used to change the phase centre of a measurement
+ set. It will recalculate the uvw-values (from the antenna locations, phase
+ centre and time) and phase-rotate the visibilities. We found that the casa
+ task 'fixvis' has several bugs (as of March 2014), and cannot be used to
+ phase rotate a measurement set properly.
