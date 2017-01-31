@@ -127,7 +127,12 @@ casacore::MPosition ArrayPosition(MeasurementSet& set, bool fallBackToCentroid=f
 		MSObservation obsTable(set.observation());
 		ROScalarColumn<String> telescopeNameColumn(obsTable, obsTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
 		bool hasTelescopeName = telescopeNameColumn.nrow()!=0;
-		bool hasObservatoryInfo = hasTelescopeName && MeasTable::Observatory(arrayPos, telescopeNameColumn(0));
+		bool hasObservatoryInfo = false;
+		if(hasTelescopeName)
+		{
+			std::string telescopeName = telescopeNameColumn(0);
+			hasObservatoryInfo = MeasTable::Observatory(arrayPos, telescopeName);
+		}
 		if(!hasTelescopeName || !hasObservatoryInfo) {
 			if(!hasTelescopeName)
 				std::cout << "WARNING: This set did not specify an observatory name.\n";
@@ -182,7 +187,7 @@ MDirection ZenithDirectionEnd(MeasurementSet& set)
 }
 
 void processField(
-	MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection,
+	MeasurementSet &set, const std::string& dataColumn, int fieldIndex, MSField &fieldTable, const MDirection &newDirection,
 	bool onlyUVW, bool shiftback, bool flipUVWSign, bool force)
 {
 	MultiBandData bandData(set.spectralWindow(), set.dataDescription());
@@ -201,23 +206,27 @@ void processField(
 		uvwOutCol(set, set.columnName(MSMainEnums::UVW));
 	
 	const bool
-		hasCorrData = set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
-		hasModelData = set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-	std::auto_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol, modelDataCol;
+		hasCorrData = dataColumn.empty() && set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
+		hasModelData = dataColumn.empty() && set.isColumn(casacore::MSMainEnums::MODEL_DATA);
+	std::unique_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol, modelDataCol;
 	if(!onlyUVW)
 	{
-		dataCol.reset(new ArrayColumn<Complex>(set,
-			set.columnName(MSMainEnums::DATA)));
-		
-		if(hasCorrData)
+		if(dataColumn.empty())
 		{
-			correctedDataCol.reset(new ArrayColumn<Complex>(set,
-				set.columnName(MSMainEnums::CORRECTED_DATA)));
+			dataCol.reset(new ArrayColumn<Complex>(set, set.columnName(MSMainEnums::DATA)));
+			if(hasCorrData)
+			{
+				correctedDataCol.reset(new ArrayColumn<Complex>(set,
+					set.columnName(MSMainEnums::CORRECTED_DATA)));
+			}
+			if(hasModelData)
+			{
+				modelDataCol.reset(new ArrayColumn<Complex>(set,
+					set.columnName(MSMainEnums::MODEL_DATA)));
+			}
 		}
-		if(hasModelData)
-		{
-			modelDataCol.reset(new ArrayColumn<Complex>(set,
-				set.columnName(MSMainEnums::MODEL_DATA)));
+		else {
+			dataCol.reset(new ArrayColumn<Complex>(set, dataColumn));
 		}
 	}
 	
@@ -265,7 +274,7 @@ void processField(
 													MDirection::Ref(MDirection::J2000))();
 		IPosition dataShape;
 		unsigned polarizationCount = 0;
-		std::auto_ptr<Array<Complex> > dataArray;
+		std::unique_ptr<Array<Complex> > dataArray;
 		if(!onlyUVW)
 		{
 			dataShape = dataCol->shape(0);
@@ -442,7 +451,7 @@ void showChanges(
 }
 
 void rotateToGeoZenith(
-	MeasurementSet &set, int fieldIndex, MSField &fieldTable, bool onlyUVW)
+	MeasurementSet &set, int fieldIndex, MSField &fieldTable, bool onlyUVW, bool flipUVWSign)
 {
 	MultiBandData bandData(set.spectralWindow(), set.dataDescription());
 	ROScalarColumn<casacore::String> nameCol(fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
@@ -462,7 +471,7 @@ void rotateToGeoZenith(
 	const bool
 		hasCorrData = set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
 		hasModelData = set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-	std::auto_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol, modelDataCol;
+	std::unique_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol, modelDataCol;
 	if(!onlyUVW)
 	{
 		dataCol.reset(new ArrayColumn<Complex>(set,
@@ -487,7 +496,7 @@ void rotateToGeoZenith(
 	
 	IPosition dataShape;
 	unsigned polarizationCount = 0;
-	std::auto_ptr<Array<Complex> > dataArray;
+	std::unique_ptr<Array<Complex> > dataArray;
 	if(!onlyUVW)
 	{
 		dataShape = dataCol->shape(0);
@@ -532,6 +541,8 @@ void rotateToGeoZenith(
 
 			// Calculate the new UVW
 			MVuvw newUVW = uvws[antenna1].getValue() - uvws[antenna2].getValue();
+			if(flipUVWSign)
+				newUVW = -newUVW;
 			
 			// If one of the first results, output values for analyzing them.
 			if(row < 5)
@@ -672,12 +683,33 @@ int main(int argc, char **argv)
 			"The format of RA can either be 00h00m00.0s or 00:00:00.0\n"
 			"The format of Dec can either be 00d00m00.0s or 00.00.00.0\n\n"
 			"Example to rotate to HydA:\n"
-			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n";
+			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n"
+			"Some options:\n"
+			"-geozenith\n"
+			"\tWill calculate the RA,dec of zenith for each timestep, and moves there. This make the set non-standard.\n"
+			"-flipuvwsign\n"
+			"\tFlips the UVW sign. Necessary for LOFAR, for unknown reasons.\n"
+			"-minw\n"
+			"\tCalculate the direction that gives the minimum w-values for the array.\n"
+			"-zenith\n"
+			"\tShift to the average zenith value.\n"
+			"-only-uvw\n"
+			"\tOnly update UVW values, do not apply the phase shift.\n"
+			"-shiftback\n"
+			"\tAfter changing the phase centre, project the visibilities back to the old phase centre. This is useful\n"
+			"\tin WSClean for imaging with minimum w-values in a different projection.\n"
+			"-f\n"
+			"\tForce recalculation, even if destination is same as original phase direction.\n"
+			"-datacolumn <name>\n"
+			"\tOnly phase-rotate the visibilities in the given column. Otherwise, the columns\n"
+			"\tDATA, MODEL_DATA and CORRECTED_DATA will all be processed if they exist.\n"
+			"\n";
 	} else {
 		int argi=1;
 		bool
 			toZenith = false, toMinW = false, onlyUVW = false,
 			shiftback = false, toGeozenith = false, flipUVWSign = false, force = false, show = false, same = false;
+		std::string dataColumn;
 		while(argv[argi][0] == '-')
 		{
 			std::string param(&argv[argi][1]);
@@ -716,6 +748,11 @@ int main(int argc, char **argv)
 			else if(param == "same")
 			{
 				same = true;
+			}
+			else if(param == "datacolumn")
+			{
+				++argi;
+				dataColumn = argv[argi];
 			}
 			else throw std::runtime_error("Invalid parameter");
 			++argi;
@@ -762,9 +799,9 @@ int main(int argc, char **argv)
 				if(show)
 					showChanges(*set, fieldIndex, fieldTable, newDirection, flipUVWSign);
 				else if(toGeozenith)
-					rotateToGeoZenith(*set, fieldIndex, fieldTable, onlyUVW);
+					rotateToGeoZenith(*set, fieldIndex, fieldTable, onlyUVW, flipUVWSign);
 				else
-					processField(*set, fieldIndex, fieldTable, newDirection, onlyUVW, shiftback, flipUVWSign, force);
+					processField(*set, dataColumn, fieldIndex, fieldTable, newDirection, onlyUVW, shiftback, flipUVWSign, force);
 			}
 			delete set;
 		}
