@@ -1,3 +1,9 @@
+chgcentre (1.5-1kern1) xenial; urgency=medium
+
+  * recompile with new key
+
+ -- KERN packaging <packaging@kernsuite.info>  Sun, 03 Dec 2017 15:54:31 +0200
+
 chgcentre (1.5-1) xenial; urgency=medium
 
   * new upstream release
