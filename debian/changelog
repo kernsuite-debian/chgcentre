@@ -1,3 +1,10 @@
+chgcentre (1.5-1kern2) bionic; urgency=medium
+
+  * upload to bionic
+  * fix dependency
+
+ -- KERN packaging <packaging@kernsuite.info>  Thu, 03 May 2018 16:31:09 +0200
+
 chgcentre (1.5-1kern1) xenial; urgency=medium
 
   * recompile with new key
