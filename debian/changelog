@@ -1,3 +1,10 @@
+chgcentre (1.6-1) bionic; urgency=medium
+
+  [ Gijs Molenaar ]
+  * New upstream version 1.6
+
+ -- KERN packaging <packaging@kernsuite.info>  Wed, 07 Nov 2018 17:49:08 +0100
+
 chgcentre (1.5-1kern2) bionic; urgency=medium
 
   * upload to bionic
