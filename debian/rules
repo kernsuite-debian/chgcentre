@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 
+CMAKE_FLAGS += -DDEB_BUILD_MULTIARCH=`dpkg-architecture -qDEB_BUILD_MULTIARCH` -DPORTABLE=yes
+
 %:
 	dh $@ --parallel
 
+override_dh_auto_configure:
+	dh_auto_configure -- $(CMAKE_FLAGS)
