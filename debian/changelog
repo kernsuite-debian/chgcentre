@@ -1,3 +1,10 @@
+chgcentre (1.6-1kern2) bionic; urgency=medium
+
+  [ Athanaseus Javas Ramaila ]
+  * Build binary that are portable on multiple platforms
+
+ -- KERN packaging <packaging@kernsuite.info>  Tue, 03 Mar 2020 15:17:31 +0200
+
 chgcentre (1.6-1) bionic; urgency=medium
 
   [ Gijs Molenaar ]
