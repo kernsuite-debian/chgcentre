@@ -2,10 +2,10 @@ Source: chgcentre
 Section: science
 Priority: optional
 Maintainer: Debian Astro Team <debian-astro-maintainers@lists.alioth.debian.org>
-Uploaders: Gijs Molenaar <gijs@pythonic.nl>
+Uploaders: KERN packaging <packaging@kernsuite.info>
 Build-Depends: casacore-dev,
                cmake,
-               debhelper (>= 9),
+               debhelper (>=10),
                libboost-dev,
                libboost-filesystem-dev,
                libboost-system-dev,
@@ -15,7 +15,7 @@ Build-Depends: casacore-dev,
                libgsl0-dev,
                libblas-dev,
                liblapack-dev
-Standards-Version: 3.9.8
+Standards-Version: 4.5.0
 Homepage: https://sourceforge.net/p/wsclean/wiki/chgcentre/
 
 Package: chgcentre

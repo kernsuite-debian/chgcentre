@@ -1,3 +1,10 @@
+chgcentre (1.6-1kern3) focal; urgency=medium
+
+  [ Athanaseus Javas Ramaila ]
+  * Build for focal
+
+ -- KERN packaging <packaging@kernsuite.info>  Thu, 11 Feb 2021 17:12:29 +0000
+
 chgcentre (1.6-1kern2) bionic; urgency=medium
 
   [ Athanaseus Javas Ramaila ]
